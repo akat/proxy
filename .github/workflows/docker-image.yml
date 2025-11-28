@@ -41,6 +41,9 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest
 
       - name: Build and (conditionally) push image
         uses: docker/build-push-action@v5

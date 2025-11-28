@@ -1,0 +1,14 @@
+version: "3.8"
+
+services:
+  expo-push-proxy:
+    image: ${IMAGE:-ghcr.io/akat/proxy:latest}
+    pull_policy: always
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-8080}:8080"
+    environment:
+      PORT: ${PORT:-8080}
+      MIN_INTERVAL_MS: ${MIN_INTERVAL_MS:-20000}
+      STAGGER_MS: ${STAGGER_MS:-3000}
+      EXPO_ENDPOINT: ${EXPO_ENDPOINT:-https://exp.host/--/api/v2/push/send}
