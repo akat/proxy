@@ -1,19 +1,14 @@
 // Lightweight Expo push proxy for offloading push sends from the ESP32.
 // - Receives POST /push with JSON body.
-// - Queues messages and sends sequentially to Expo with configurable spacing.
-// - Default spacing: 20s between messages, 3s stagger between devices.
+// - Sends immediately to Expo (no queue, no cooldown, no stagger).
 
 const http = require("http");
 const { URL } = require("url");
 
 const PORT = Number(process.env.PORT || 8080);
-const MIN_INTERVAL_MS = Number(process.env.MIN_INTERVAL_MS || 20000);
-const STAGGER_MS = Number(process.env.STAGGER_MS || 3000);
+const MIN_INTERVAL_MS = Number(process.env.MIN_INTERVAL_MS || 0);     // unused (legacy)
+const STAGGER_MS = Number(process.env.STAGGER_MS || 0);               // unused (legacy)
 const EXPO_ENDPOINT = process.env.EXPO_ENDPOINT || "https://exp.host/--/api/v2/push/send";
-
-const queue = [];
-let sending = false;
-let lastSent = 0;
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -50,38 +45,6 @@ async function sendToExpo(token, payload) {
   }
 }
 
-async function processQueue() {
-  if (sending) return;
-  sending = true;
-
-  while (queue.length > 0) {
-    const { token, payload } = queue.shift();
-
-    // Enforce minimum interval between sends
-    const waitMs = Math.max(0, lastSent + MIN_INTERVAL_MS - Date.now());
-    if (waitMs > 0) {
-      await delay(waitMs);
-    }
-
-    await sendToExpo(token, payload);
-    lastSent = Date.now();
-
-    // Stagger between devices
-    if (STAGGER_MS > 0 && queue.length > 0) {
-      await delay(STAGGER_MS);
-    }
-  }
-
-  sending = false;
-}
-
-function enqueue(tokens, payload) {
-  for (const token of tokens) {
-    queue.push({ token, payload });
-  }
-  processQueue().catch((err) => console.error("Queue error", err));
-}
-
 function sendJson(res, status, obj) {
   const body = JSON.stringify(obj);
   res.writeHead(status, {
@@ -115,7 +78,7 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (req.method === "GET" && url.pathname === "/health") {
-    return sendJson(res, 200, { status: "ok", queued: queue.length });
+    return sendJson(res, 200, { status: "ok" });
   }
 
   if (req.method === "POST" && url.pathname === "/push") {
@@ -138,8 +101,9 @@ const server = http.createServer(async (req, res) => {
         priority: "high",
       };
 
-      enqueue(tokens, payload);
-      return sendJson(res, 202, { queued: tokens.length });
+      // Send immediately (no queue, no spacing)
+      await Promise.all(tokens.map((t) => sendToExpo(t, payload)));
+      return sendJson(res, 200, { sent: tokens.length });
     } catch (err) {
       console.error("Failed to handle /push", err);
       return sendJson(res, 400, { error: err.message });

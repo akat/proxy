@@ -9,6 +9,10 @@ services:
       - "8080:8080"
     environment:
       PORT: 8080
-      MIN_INTERVAL_MS: 20000   # 20s between messages
+      # MIN_INTERVAL_MS unused (no cooldown)
+      MIN_INTERVAL_MS: 0   # no cooldown
       STAGGER_MS: 3000         # 3s between device sends
       EXPO_ENDPOINT: https://exp.host/--/api/v2/push/send
+
+
+

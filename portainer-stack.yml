@@ -1,14 +1,26 @@
 version: "3.8"
 
 services:
-  expo-push-proxy:
+  proxyit:
     image: ${IMAGE:-ghcr.io/akat/proxy:latest}
     pull_policy: always
     restart: unless-stopped
-    ports:
-      - "${HOST_PORT:-8080}:8080"
     environment:
       PORT: ${PORT:-8080}
       MIN_INTERVAL_MS: ${MIN_INTERVAL_MS:-20000}
       STAGGER_MS: ${STAGGER_MS:-3000}
       EXPO_ENDPOINT: ${EXPO_ENDPOINT:-https://exp.host/--/api/v2/push/send}
+    labels:
+      - "traefik.enable=true"
+      - "com.centurylinklabs.watchtower.enable=true"
+      - "traefik.http.routers.proxyit.rule=Host(`proxyit.digitalspot.gr`)"
+      - "traefik.http.routers.proxyit.entrypoints=web"
+      - "traefik.http.routers.proxyit.tls=false"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.services.proxyit.loadbalancer.server.port=8080"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
