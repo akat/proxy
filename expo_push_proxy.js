@@ -92,11 +92,18 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: "Missing 'title' or 'body'" });
       }
 
+      // iOS notification sounds must be CAF/IMA4 — a plain WAV is rejected by the
+      // iOS notification subsystem and falls back to the default sound. On Android
+      // the sound is resolved from the notification channel (via channelId), so the
+      // payload sound is ignored there and sending the .caf name is safe for both.
+      let sound = body.sound || "default";
+      if (sound === "geofence_alarm.wav") sound = "geofence_alarm.caf";
+
       const payload = {
         title: body.title,
         body: body.body,
         data: body.data || {},
-        sound: body.sound || "default",
+        sound,
         channelId: body.channelId || "default",
         priority: "high",
       };
