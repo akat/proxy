@@ -96,9 +96,12 @@ const server = http.createServer(async (req, res) => {
       // iOS notification subsystem and falls back to the default sound. On Android
       // the sound is resolved from the notification channel (via channelId), so the
       // payload sound is ignored there and sending the .caf name is safe for both.
+
+      console.log("body", body);
+
       let sound = body.sound || "default";
       if (sound === "geofence_alarm.wav") sound = "geofence_alarm.caf";
-
+      console.log("sound", sound);
       const payload = {
         title: body.title,
         body: body.body,
@@ -107,6 +110,8 @@ const server = http.createServer(async (req, res) => {
         channelId: body.channelId || "default",
         priority: "high",
       };
+
+      console.log(payload);
 
       // Send immediately (no queue, no spacing)
       await Promise.all(tokens.map((t) => sendToExpo(t, payload)));
