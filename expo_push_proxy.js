@@ -198,26 +198,29 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: "Missing 'title' or 'body'" });
       }
 
-      // iOS plays a custom sound only as the bundled CAF; the source may still send the
-      // legacy .wav name. On Android the sound is taken from the notification channel.
-      const sound =
-        body.sound === "geofence_alarm.wav" || body.sound === "geofence_alarm.caf"
-          ? "geofence_alarm.caf"
-          : body.sound || "default";
-
+      // iOS needs the bundled CAF (a WAV won't play). The source may still send the
+      // legacy .wav name. Android takes the sound from its notification channel, so its
+      // payload sound is left EXACTLY as received - only the iOS/APNs path is remapped.
+      const rawSound = body.sound || "default";
+      const isAlarm = rawSound === "geofence_alarm.wav" || rawSound === "geofence_alarm.caf";
       const data = body.data && typeof body.data === "object" ? body.data : {};
 
       await Promise.all(
         tokens.map((t) => {
           const m = APNS_WRAP.exec(t);
           if (m) {
-            return sendApns(m[1], { title: body.title, body: body.body, data, sound });
+            return sendApns(m[1], {
+              title: body.title,
+              body: body.body,
+              data,
+              sound: isAlarm ? "geofence_alarm.caf" : rawSound,
+            });
           }
           return sendToExpo(t, {
             title: body.title,
             body: body.body,
             data,
-            sound,
+            sound: rawSound,
             channelId: body.channelId || "default",
             priority: "high",
           });
