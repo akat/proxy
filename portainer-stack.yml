@@ -10,6 +10,13 @@ services:
       MIN_INTERVAL_MS: ${MIN_INTERVAL_MS:-20000}
       STAGGER_MS: ${STAGGER_MS:-3000}
       EXPO_ENDPOINT: ${EXPO_ENDPOINT:-https://exp.host/--/api/v2/push/send}
+      # APNs (token-based). Set these as stack/env variables in Portainer.
+      # APNS_KEY is the full .p8 PEM on a single line, with newlines escaped as \n.
+      APNS_KEY: ${APNS_KEY}
+      APNS_KEY_ID: ${APNS_KEY_ID}
+      APNS_TEAM_ID: ${APNS_TEAM_ID}
+      APNS_BUNDLE_ID: ${APNS_BUNDLE_ID:-com.akat78.sixpack}
+      APNS_HOST: ${APNS_HOST:-api.push.apple.com}
     labels:
       - "traefik.enable=true"
       - "com.centurylinklabs.watchtower.enable=true"
